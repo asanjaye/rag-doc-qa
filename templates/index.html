@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Q&A Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .citation-card {
+            transition: all 0.2s ease;
+        }
+        .citation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .escalation-banner {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        }
+        .thinking-dots span {
+            animation: blink 1.4s infinite both;
+        }
+        .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <div class="flex items-center justify-center gap-3 mb-2">
+                <div class="bg-blue-600 p-3 rounded-xl">
+                    <i class="fas fa-robot text-white text-2xl"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900">Document Q&A Assistant</h1>
+            </div>
+            <p class="text-gray-600">Ask questions about NovaTech policies, products, and FAQs</p>
+        </header>
+
+        <!-- Status Bar -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full {{ 'bg-green-500' if documents_indexed > 0 else 'bg-yellow-500' }}"></span>
+                    <span class="text-sm text-gray-600">{{ documents_indexed }} chunks indexed</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full {{ 'bg-green-500' if llm_configured else 'bg-red-500' }}"></span>
+                    <span class="text-sm text-gray-600">LLM: {{ llm_provider }}</span>
+                </div>
+            </div>
+            <button onclick="reindex()" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                <i class="fas fa-sync-alt"></i>
+                Re-index
+            </button>
+        </div>
+
+        <!-- Query Input -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <form onsubmit="submitQuery(event)" class="space-y-4">
+                <div>
+                    <label for="question" class="block text-sm font-medium text-gray-700 mb-2">
+                        Your Question
+                    </label>
+                    <textarea
+                        id="question"
+                        name="question"
+                        rows="3"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        placeholder="e.g., What is the PTO policy? How does DataSync Pro handle errors?"
+                    ></textarea>
+                </div>
+                <button
+                    type="submit"
+                    id="submitBtn"
+                    class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                >
+                    <i class="fas fa-paper-plane"></i>
+                    Ask Question
+                </button>
+            </form>
+        </div>
+
+        <!-- Example Questions -->
+        <div class="mb-6">
+            <p class="text-sm text-gray-500 mb-3">Try these example questions:</p>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="setQuestion('What are the core working hours for remote employees?')" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors">
+                    Remote work hours
+                </button>
+                <button onclick="setQuestion('What databases does DataSync Pro support?')" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors">
+                    Supported databases
+                </button>
+                <button onclick="setQuestion('How do I request PTO?')" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors">
+                    PTO process
+                </button>
+                <button onclick="setQuestion('What is your competitor pricing?')" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors">
+                    Out-of-scope test
+                </button>
+            </div>
+        </div>
+
+        <!-- Response Area -->
+        <div id="responseArea" class="hidden">
+            <!-- Loading State -->
+            <div id="loading" class="hidden bg-white rounded-xl shadow-sm p-6 mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="thinking-dots text-blue-600 text-2xl">
+                        <span>●</span><span>●</span><span>●</span>
+                    </div>
+                    <span class="text-gray-600">Searching documents and generating answer...</span>
+                </div>
+            </div>
+
+            <!-- Response Content -->
+            <div id="responseContent" class="hidden space-y-4">
+                <!-- Escalation Banner -->
+                <div id="escalationBanner" class="hidden escalation-banner rounded-xl p-4 border border-yellow-300">
+                    <div class="flex items-start gap-3">
+                        <div class="bg-yellow-500 p-2 rounded-lg">
+                            <i class="fas fa-user-tie text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-yellow-800">Escalated to Human</h3>
+                            <p id="escalationReason" class="text-sm text-yellow-700 mt-1"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Answer -->
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-comment-dots text-blue-600"></i>
+                        <h3 class="font-semibold text-gray-900">Answer</h3>
+                        <span id="confidenceBadge" class="ml-auto px-2 py-1 rounded-full text-xs font-medium"></span>
+                    </div>
+                    <div id="answerText" class="text-gray-700 whitespace-pre-wrap leading-relaxed"></div>
+                    <div id="metaInfo" class="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 text-xs text-gray-500">
+                        <span><i class="fas fa-fingerprint mr-1"></i>ID: <span id="requestId"></span></span>
+                        <span><i class="fas fa-microchip mr-1"></i>Model: <span id="modelUsed"></span></span>
+                        <span><i class="fas fa-coins mr-1"></i>Tokens: <span id="tokensUsed"></span></span>
+                    </div>
+                </div>
+
+                <!-- Citations -->
+                <div id="citationsSection" class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-quote-left text-green-600"></i>
+                        <h3 class="font-semibold text-gray-900">Sources</h3>
+                        <span id="citationCount" class="text-sm text-gray-500"></span>
+                    </div>
+                    <div id="citationsList" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setQuestion(text) {
+            document.getElementById('question').value = text;
+            document.getElementById('question').focus();
+        }
+
+        async function submitQuery(e) {
+            e.preventDefault();
+            const question = document.getElementById('question').value.trim();
+            if (!question) return;
+
+            const responseArea = document.getElementById('responseArea');
+            const loading = document.getElementById('loading');
+            const responseContent = document.getElementById('responseContent');
+            const submitBtn = document.getElementById('submitBtn');
+
+            responseArea.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            responseContent.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+
+                if (!response.ok) throw new Error('Query failed');
+                const data = await response.json();
+                displayResponse(data);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                loading.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Ask Question';
+            }
+        }
+
+        function displayResponse(data) {
+            const responseContent = document.getElementById('responseContent');
+            const escalationBanner = document.getElementById('escalationBanner');
+            const citationsSection = document.getElementById('citationsSection');
+
+            // Show/hide escalation banner
+            if (data.escalated) {
+                escalationBanner.classList.remove('hidden');
+                document.getElementById('escalationReason').textContent = data.escalation_reason;
+            } else {
+                escalationBanner.classList.add('hidden');
+            }
+
+            // Set answer
+            document.getElementById('answerText').textContent = data.answer;
+            document.getElementById('requestId').textContent = data.request_id;
+            document.getElementById('modelUsed').textContent = data.model_used;
+            document.getElementById('tokensUsed').textContent = data.tokens_used;
+
+            // Confidence badge
+            const badge = document.getElementById('confidenceBadge');
+            const confidence = data.confidence;
+            if (confidence >= 0.8) {
+                badge.className = 'ml-auto px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700';
+                badge.textContent = `High confidence (${(confidence * 100).toFixed(0)}%)`;
+            } else if (confidence >= 0.65) {
+                badge.className = 'ml-auto px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700';
+                badge.textContent = `Medium confidence (${(confidence * 100).toFixed(0)}%)`;
+            } else {
+                badge.className = 'ml-auto px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700';
+                badge.textContent = `Low confidence (${(confidence * 100).toFixed(0)}%)`;
+            }
+
+            // Citations
+            if (data.citations && data.citations.length > 0) {
+                citationsSection.classList.remove('hidden');
+                document.getElementById('citationCount').textContent = `(${data.citations.length} sources)`;
+                
+                const citationsList = document.getElementById('citationsList');
+                citationsList.innerHTML = data.citations.map((c, i) => `
+                    <div class="citation-card bg-gray-50 rounded-lg p-4 border border-gray-100">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium text-gray-900">${c.section}</span>
+                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                                ${(c.relevance_score * 100).toFixed(0)}% match
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600">${c.snippet}</p>
+                        <p class="text-xs text-gray-400 mt-2">${c.source_file}</p>
+                    </div>
+                `).join('');
+            } else {
+                citationsSection.classList.add('hidden');
+            }
+
+            responseContent.classList.remove('hidden');
+        }
+
+        async function reindex() {
+            if (!confirm('Re-index all documents?')) return;
+            
+            try {
+                const response = await fetch('/api/index', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                alert(`Indexed ${data.documents_indexed} new chunks. Total: ${data.total_documents}`);
+                location.reload();
+            } catch (error) {
+                alert('Indexing failed: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

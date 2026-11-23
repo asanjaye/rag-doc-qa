@@ -1,0 +1,228 @@
+# Document Q&A Assistant - Evaluation Set
+# 20 questions testing answer accuracy, citation quality, and escalation behavior
+
+questions:
+  # === ANSWERABLE: Policy Questions ===
+  - id: policy_001
+    question: "What are the core working hours for remote employees?"
+    expected_answer_contains:
+      - "10:00 AM"
+      - "3:00 PM"
+    expected_sources:
+      - "Remote Work Policy"
+    should_escalate: false
+    category: policy
+    difficulty: easy
+
+  - id: policy_002
+    question: "How many PTO days do employees with 3 years tenure get?"
+    expected_answer_contains:
+      - "20"
+      - "days"
+    expected_sources:
+      - "Paid Time Off"
+    should_escalate: false
+    category: policy
+    difficulty: easy
+
+  - id: policy_003
+    question: "What is the maximum expense reimbursement for client entertainment?"
+    expected_answer_contains:
+      - "$150"
+      - "person"
+    expected_sources:
+      - "Expense Reimbursement"
+    should_escalate: false
+    category: policy
+    difficulty: easy
+
+  - id: policy_004
+    question: "What happens if I violate the code of conduct?"
+    expected_answer_contains:
+      - "warning"
+      - "termination"
+    expected_sources:
+      - "Code of Conduct"
+    should_escalate: false
+    category: policy
+    difficulty: medium
+
+  - id: policy_005
+    question: "How much PTO can I carry over to next year?"
+    expected_answer_contains:
+      - "5"
+      - "days"
+    expected_sources:
+      - "Paid Time Off"
+    should_escalate: false
+    category: policy
+    difficulty: easy
+
+  # === ANSWERABLE: Product Questions ===
+  - id: product_001
+    question: "What databases does DataSync Pro support?"
+    expected_answer_contains:
+      - "PostgreSQL"
+      - "MySQL"
+      - "MongoDB"
+    expected_sources:
+      - "Supported Connectors"
+    should_escalate: false
+    category: product
+    difficulty: easy
+
+  - id: product_002
+    question: "What is the sync latency for DataSync Pro?"
+    expected_answer_contains:
+      - "500"
+      - "milliseconds"
+    expected_sources:
+      - "Real-Time Synchronization"
+    should_escalate: false
+    category: product
+    difficulty: easy
+
+  - id: product_003
+    question: "How does DataSync Pro handle failed syncs?"
+    expected_answer_contains:
+      - "retry"
+      - "exponential"
+      - "24 hours"
+    expected_sources:
+      - "Error Handling"
+    should_escalate: false
+    category: product
+    difficulty: medium
+
+  - id: product_004
+    question: "What is included in the Professional tier?"
+    expected_answer_contains:
+      - "$799"
+      - "10 connectors"
+      - "real-time"
+    expected_sources:
+      - "Pricing Tiers"
+    should_escalate: false
+    category: product
+    difficulty: medium
+
+  - id: product_005
+    question: "Is DataSync Pro SOC 2 compliant?"
+    expected_answer_contains:
+      - "SOC 2"
+      - "Type II"
+    expected_sources:
+      - "Security"
+    should_escalate: false
+    category: product
+    difficulty: easy
+
+  # === ANSWERABLE: FAQ Questions ===
+  - id: faq_001
+    question: "Where is NovaTech headquartered?"
+    expected_answer_contains:
+      - "Austin"
+      - "Texas"
+    expected_sources:
+      - "General Questions"
+    should_escalate: false
+    category: faq
+    difficulty: easy
+
+  - id: faq_002
+    question: "Does NovaTech offer a free trial?"
+    expected_answer_contains:
+      - "14"
+      - "day"
+      - "free"
+    expected_sources:
+      - "Product Questions"
+    should_escalate: false
+    category: faq
+    difficulty: easy
+
+  - id: faq_003
+    question: "What are the support hours for Professional tier customers?"
+    expected_answer_contains:
+      - "8 AM"
+      - "8 PM"
+    expected_sources:
+      - "Technical Support"
+    should_escalate: false
+    category: faq
+    difficulty: medium
+
+  - id: faq_004
+    question: "What benefits does NovaTech offer employees?"
+    expected_answer_contains:
+      - "medical"
+      - "401(k)"
+    expected_sources:
+      - "HR & Employment"
+    should_escalate: false
+    category: faq
+    difficulty: easy
+
+  # === SHOULD ESCALATE: Out of Scope ===
+  - id: escalate_001
+    question: "What is your competitor Acme Corp's pricing?"
+    expected_answer_contains: []
+    expected_sources: []
+    should_escalate: true
+    escalation_reason: "out of scope"
+    category: escalate
+    difficulty: easy
+
+  - id: escalate_002
+    question: "Can you provide legal advice on data privacy regulations?"
+    expected_answer_contains: []
+    expected_sources: []
+    should_escalate: true
+    escalation_reason: "out of scope"
+    category: escalate
+    difficulty: easy
+
+  # === SHOULD ESCALATE: Low Confidence ===
+  - id: escalate_003
+    question: "What was NovaTech's revenue last quarter?"
+    expected_answer_contains: []
+    expected_sources: []
+    should_escalate: true
+    escalation_reason: "not in knowledge base"
+    category: escalate
+    difficulty: medium
+
+  - id: escalate_004
+    question: "Who is the CEO of NovaTech?"
+    expected_answer_contains: []
+    expected_sources: []
+    should_escalate: true
+    escalation_reason: "not in knowledge base"
+    category: escalate
+    difficulty: medium
+
+  # === TRICKY: Requires Multiple Sources ===
+  - id: tricky_001
+    question: "How do remote work policies and expense reimbursement work together for home office equipment?"
+    expected_answer_contains:
+      - "$500"
+      - "stipend"
+      - "home office"
+    expected_sources:
+      - "Remote Work Policy"
+    should_escalate: false
+    category: tricky
+    difficulty: hard
+
+  - id: tricky_002
+    question: "Compare the API rate limits across different pricing tiers"
+    expected_answer_contains:
+      - "100"
+      - "1,000"
+      - "10,000"
+    expected_sources:
+      - "API Access"
+      - "Pricing"
+    should_escalate: false
+    category: tricky
+    difficulty: hard
